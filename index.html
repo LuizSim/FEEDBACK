@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Hub - Final Supabase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .rating-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+        }
+
+        @media (max-width: 640px) {
+            .rating-btn {
+                font-size: 0.65rem;
+                min-height: 28px;
+            }
+        }
+
+        .rating-btn:hover {
+            border-color: #4f46e5;
+            background-color: #f5f3ff;
+            color: #4f46e5;
+        }
+
+        .rating-btn.active {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            border-color: #4f46e5 !important;
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.4);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feedback-card {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+
+    <header
+        class="bg-white border-b border-slate-200 py-4 md:py-6 px-4 mb-4 sticky top-0 z-30 shadow-sm md:static text-center">
+        <h1 class="text-xl md:text-2xl font-bold text-indigo-600">Feedback Hub</h1>
+        <p class="text-slate-500 text-xs md:text-sm">Sistema de Avaliação Profissional</p>
+        <div id="connection-status"
+            class="inline-block mt-2 text-[10px] font-mono bg-slate-100 px-3 py-1 rounded-full text-slate-400">
+            Aguardando chaves de API...
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 pb-20">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+
+            <section class="lg:col-span-5">
+                <div class="glass p-4 md:p-6 rounded-2xl shadow-sm lg:sticky lg:top-24">
+                    <h2 class="text-lg font-semibold mb-6 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Nova Avaliação
+                    </h2>
+
+                    <form id="feedback-form" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Seu Nome</label>
+                            <input type="text" id="user-name" required placeholder="Ex: Maria Santos"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-base transition-all">
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="rating-group" data-category="service">
+                                <label
+                                    class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">Qualidade
+                                    do Atendimento</label>
+                                <div class="rating-container grid grid-cols-11 gap-1"></div>
+                            </div>
+
+                            <div class="rating-group" data-category="food">
+                                <label
+                                    class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">Tempo
+                                    de Espera / Comida</label>
+                                <div class="rating-container grid grid-cols-11 gap-1"></div>
+                            </div>
+
+                            <div class="rating-group" data-category="clean">
+                                <label
+                                    class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">Higiene
+                                    do Espaço</label>
+                                <div class="rating-container grid grid-cols-11 gap-1"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Comentários (Opcional)</label>
+                            <textarea id="comments" rows="3" placeholder="Conte como foi sua experiência..."
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm transition-all"></textarea>
+                        </div>
+
+                        <button type="submit" id="submit-btn"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            Enviar Feedback
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="lg:col-span-7">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold text-slate-600">Mural de Avaliações</h2>
+                    <div id="stats"
+                        class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase">...
+                    </div>
+                </div>
+
+                <div id="feedback-list" class="space-y-4">
+                    <div class="animate-pulse glass p-6 rounded-2xl">
+                        <div class="h-4 bg-slate-200 rounded w-1/3 mb-4"></div>
+                        <div class="h-10 bg-slate-100 rounded mb-4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="success-modal"
+        class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div
+                class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Sucesso!</h3>
+            <p class="text-slate-500 mb-8">Sua avaliação foi registrada no Supabase com sucesso.</p>
+            <button onclick="closeModal()"
+                class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all">Entendido</button>
+        </div>
+    </div>
+
+    <script type="module">
+        const SUPABASE_URL = "https://sswhqksmvcgpkwxkmxbz.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzd2hxa3NtdmNncGt3eGtteGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1ODUzMjgsImV4cCI6MjA4OTE2MTMyOH0.OJKctIxt8ZCZ_b9g98AIhG76evFpQnt08OahbUxb9OE";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const selectedRatings = { service: 0, food: 0, clean: 0 };
+        const statusEl = document.getElementById('connection-status');
+        const statsEl = document.getElementById('stats');
+        const feedbackList = document.getElementById('feedback-list');
+
+        function setupRatingUI() {
+            const groups = document.querySelectorAll('.rating-group');
+            groups.forEach(group => {
+                const category = group.dataset.category;
+                const container = group.querySelector('.rating-container');
+
+                container.innerHTML = '';
+                for (let i = 0; i <= 10; i++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.innerText = i;
+                    btn.className = `rating-btn ${i === 0 ? 'active' : ''}`;
+
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        group.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        selectedRatings[category] = i;
+                    };
+                    container.appendChild(btn);
+                }
+            });
+        }
+
+        async function syncData() {
+            const { data, error } = await supabaseClient
+                .from('feedbacks')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                statusEl.innerText = "❌ Erro na Conexão";
+                return;
+            }
+
+            statusEl.innerText = "✅ Supabase Conectado";
+            renderFeedbacks(data);
+            statsEl.innerText = `${data.length} Avaliações`;
+
+            // Realtime
+            supabaseClient
+                .channel('feedbacks-realtime')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'feedbacks' }, async () => {
+                    const { data: latest } = await supabaseClient.from('feedbacks').select('*').order('created_at', { ascending: false });
+                    renderFeedbacks(latest);
+                    statsEl.innerText = `${latest.length} Avaliações`;
+                })
+                .subscribe();
+        }
+
+        function renderFeedbacks(items) {
+            if (!items || items.length === 0) {
+                feedbackList.innerHTML = `<div class="glass p-12 rounded-2xl text-center text-slate-400 text-sm">Nenhuma avaliação encontrada.</div>`;
+                return;
+            }
+
+            feedbackList.innerHTML = items.map(fb => {
+                // Note que aqui usamos os nomes em PORTUGUÊS que vêm do banco
+                const avg = ((fb.qualidade_atendimento + fb.tempo_espera_comida + fb.higiene_espaco) / 3).toFixed(1);
+                const date = new Date(fb.created_at).toLocaleDateString('pt-BR');
+
+                return `
+            <div class="feedback-card glass p-5 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="mr-2">
+                        <h4 class="font-bold text-slate-800 text-sm md:text-base">${fb.nome}</h4>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${date}</span>
+                    </div>
+                    <div class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                        Média ${avg}
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+                    <div class="bg-slate-50 p-2 rounded-xl">
+                        <span class="text-[8px] text-slate-400 font-bold uppercase block mb-1">Atendimento</span>
+                        <span class="text-indigo-600 font-bold text-xs">${fb.qualidade_atendimento}/10</span>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl">
+                        <span class="text-[8px] text-slate-400 font-bold uppercase block mb-1">Espera</span>
+                        <span class="text-indigo-600 font-bold text-xs">${fb.tempo_espera_comida}/10</span>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl">
+                        <span class="text-[8px] text-slate-400 font-bold uppercase block mb-1">Higiene</span>
+                        <span class="text-indigo-600 font-bold text-xs">${fb.higiene_espaco}/10</span>
+                    </div>
+                </div>
+                ${fb.comentarios ? `<p class="text-slate-600 text-xs italic bg-indigo-50/20 p-3 rounded-xl border border-indigo-100/30">"${fb.comentarios}"</p>` : ''}
+            </div>`;
+            }).join('');
+        }
+
+        // AQUI ESTAVA O ERRO: Ajustado para usar os campos em português
+        document.getElementById('feedback-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+
+            const payload = {
+                nome: document.getElementById('user-name').value,
+                qualidade_atendimento: selectedRatings.service,
+                tempo_espera_comida: selectedRatings.food,
+                higiene_espaco: selectedRatings.clean,
+                comentarios: document.getElementById('comments').value
+            };
+
+            const { error } = await supabaseClient.from('feedbacks').insert([payload]);
+
+            if (error) {
+                console.error("Erro Supabase:", error);
+                alert("Erro ao salvar: " + error.message);
+            } else {
+                e.target.reset();
+                setupRatingUI(); // Reset visual
+                selectedRatings.service = 0; selectedRatings.food = 0; selectedRatings.clean = 0;
+                document.getElementById('success-modal').style.display = 'flex';
+            }
+
+            btn.disabled = false;
+            btn.innerText = "Enviar Feedback";
+        };
+
+        window.closeModal = () => document.getElementById('success-modal').style.display = 'none';
+
+        setupRatingUI();
+        syncData();
+    </script>
+
+</body>
+
+</html>
